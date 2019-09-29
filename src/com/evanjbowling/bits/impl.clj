@@ -4,10 +4,10 @@
 (def class-specs
   {Character
    {:bits 16
-    :bit-groups [{:start 0, :length 16, :name nil, :format :twos-ncomplement}]}
+    :bit-groups [{:start 0, :length 16, :name nil, :format :twos-complement}]}
    Short
    {:bits 16
-    :bit-groups [{:start 0, :length 16, :name nil, :format :twos-ncomplement}]}
+    :bit-groups [{:start 0, :length 16, :name nil, :format :twos-complement}]}
    Integer
    {:bits 32
     :bit-groups [{:start 0, :length 32, :name nil, :format :twos-complement}]}
@@ -161,6 +161,10 @@
    Float     float-bits
    Double    double-bits})
 
+;;
+;; float support
+;;
+
 (defn ^:private abs
   [x]
   (cond-> x (neg? x) (* -1N)))
@@ -172,16 +176,18 @@
     (cond->> (apply *' (repeat (abs e) base))
       (neg? e) (/ 1))))
 
-(defn ^:private sum-digits
-  "Returns sum of the digit sequence assuming
-  big-endian order.
+(defn ^:private sum-exponent-bits
+  "Returns sum of the big-endian unsigned binary
+  integer sequence."
+  [digits]
+  (->> (reverse digits)
+       (map-indexed (fn [i d] (*' d (pow 2 i))))
+       (apply +')))
 
-  Examples:
-    (sum-digit-seq 2 2 [1 1 0])
-    ;;=> 6"
-  [base exponent-start digits]
+(defn ^:private sum-fraction-bits
+  [digits]
   (->> digits
-       (map-indexed (fn [i d] (*' d (pow base (-' exponent-start i)))))
+       (map-indexed (fn [i d] (*' d (pow 2 (-' 0 i)))))
        (apply +')))
 
 (defn ^:private zeros?
@@ -212,14 +218,13 @@
   (and (ones? e) (zeros? f)))
 
 (defn ^:private nan?
-  "Checks if the floating point bit sequence is a
-  nan value."
+  "Checks if the floating point bit sequence is a nan
+  value."
   [[s e f]]
   (and (ones? e) (not (zeros? f))))
 
 (defn ^:private type
-  "Returns the type of a floating point bit
-  sequence."
+  "Returns the type of a floating point bit sequence."
   [bits]
   (cond
     (infinity? bits)  :infinity
@@ -228,33 +233,67 @@
     (subnormal? bits) :subnormal
     :else             :normal))
 
-(defn ^:private attr-fn
-  [c]
-  (fn [f]
-    (let [bits-fn (get class->bits-fn c)
-          exponent-bias (:exponent-bias (get class-specs c))
-          [[s] e f :as bits] (bits-fn f)
-          float-type (type bits)
-          fraction-full (cons
-                         (if (= float-type :subnormal)
-                           0
-                           1)
-                         f)]
-      (cond-> {:negative? (= 1 s)
-               :type float-type}
-        (nan? bits) (dissoc :negative?)
+(defn exponent-attrs
+  [{:keys [float-type exponent-bias exponent-bits]}]
+  (cond
+    (= :zero float-type)
+    {:exponent-biased 0
+     :exponent        0}
 
-        (#{:subnormal :normal} float-type)
-        (#(let [exp-biased (sum-digits 2 (-> e count dec) e)
-                exp        (+' exp-biased exponent-bias)
-                fraction   (sum-digits 2 0 fraction-full)]
-            (merge
-             %
-             {:exponent-biased exp-biased
-              :exponent exp
-              :fraction fraction
-              :rational (*' fraction (pow 2 exp))})))))))
+    (#{:subnormal :normal} float-type)
+    (let [exp-biased (sum-exponent-bits exponent-bits)]
+      {:exponent-biased exp-biased
+       :exponent (cond-> (+ exp-biased exponent-bias)
+                   (= :subnormal float-type) (+ 1))})
 
-(def float-attrs (attr-fn Float))
-(def double-attrs (attr-fn Double))
+    :else {}))
+
+(defn fraction-attrs
+  [{:keys [float-type sign fraction-bits]}]
+  ;; TODO: use sign/update tests
+  (cond
+    (= :zero float-type)      {:fraction 0}
+    (= :subnormal float-type) {:fraction (sum-fraction-bits (cons 0 fraction-bits))}
+    (= :normal float-type)    {:fraction (sum-fraction-bits (cons 1 fraction-bits))}
+    :else {}))
+
+(defn rational-attrs
+  [[[s] e f :as bits] exponent-bias]
+  (let [sign (if (= 0 s) 1 -1)
+        float-type (type bits)
+
+        {:keys [exponent] :as eattrs}
+        (exponent-attrs
+         {:float-type float-type
+          :exponent-bias exponent-bias
+          :exponent-bits e
+          :fraction-bits f})
+
+        {:keys [fraction] :as fattrs}
+        (fraction-attrs
+         {:float-type float-type
+          :sign sign
+          :fraction-bits f})]
+    (cond-> {:negative? (neg? sign)
+             :type float-type}
+
+      (= :nan float-type) (dissoc :negative?)
+
+      (not (#{:nan :infinity} float-type))
+      (merge
+       eattrs
+       fattrs
+       {:rational (*' sign fraction (pow 2 exponent))}))))
+
+(defn float-attrs
+  [f]
+  (rational-attrs
+   ((get class->bits-fn Float) f)
+   (:exponent-bias (get class-specs Float))))
+
+(defn double-attrs
+  [d]
+  (rational-attrs
+   ((get class->bits-fn Double) d)
+   (:exponent-bias (get class-specs Double))))
 
