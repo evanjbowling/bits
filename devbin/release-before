@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Purpose: Perform checks before creating a release.
+#          Non-zero return code indicates failure.
+set -eux
+
+# no uncommitted changes
+lein vcs assert-committed
+
+# no staged but uncommitted files
+git diff-index --exit-code HEAD
+
+# no untracked files
+function untracked_files() {
+  local untrackedfiles=$(git ls-files -o --exclude-standard | wc -l)
+  if [ $untrackedfiles -ne 0 ]; then
+    echo "ERROR: untracked files"
+    exit 1
+  fi
+}
+untracked_files
+
+# no snapshot in version
+function no_snapshot_in_version() {
+  local snapshotlines=$(head -n1 project.clj | awk '{print $3}' | grep -i "snapshot" | wc -l)
+  if [ $snapshotlines -ne 0 ]; then
+    echo "ERROR: SNAPSHOT in version"
+    exit 1
+  fi
+}
+no_snapshot_in_version
+
+# tag does not exist yet
+function tag_does_not_exist() {
+  local version=$(head -n1 project.clj | awk '{print $3}' | sed "s/\"//g")
+  local exists=$(git tag | grep "$version" | wc -l)
+  if [ $exists -ne 0 ]; then
+    echo "ERROR: tag already exists for this version"
+    exit 1
+  fi
+}
+tag_does_not_exist
+
+# on master branch
+function on_master_branch() {
+  local branch=$(git rev-parse --abbrev-ref HEAD)
+  if [ "$branch" != "master" ]; then
+    echo "ERROR: not on master branch"
+    exit 1
+  fi
+}
+on_master_branch
+
+echo "release-before - success"

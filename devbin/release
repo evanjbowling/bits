@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -eux
+
+./devbin/release-before
+
+echo "# create signed annotated tag for release"
+echo "git tag -s -a $NEW_VERSION"
+
+echo "# deploy to clojars"
+echo "lein deploy clojars"
+
+echo "# push tag to remote"
+echo "git push --tags"
+
+echo "# review README/badge/docs/CHANGELOG"
