@@ -1,4 +1,4 @@
-(defproject com.evanjbowling/bits "0.0.1-SNAPSHOT"
+(defproject com.evanjbowling/bits "0.0.1"
   :plugins      [[lein-cljfmt                 "0.6.4"]
                  [lein-cloverage              "1.0.13"]]
   :dependencies [[org.clojure/clojure         "1.8.0"]]
