@@ -2,6 +2,8 @@
 
 A smallish Clojure library for transforming Java primitives into binary sequences and back again. Intended to help explore encodings. Particularly useful for `float` and `double` types.
 
+[![Clojars Project](https://img.shields.io/clojars/v/com.evanjbowling/bits.svg)](https://clojars.org/com.evanjbowling/bits)
+
 ## Quick Demo
 
 Load the namespace:
