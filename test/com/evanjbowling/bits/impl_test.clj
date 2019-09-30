@@ -18,11 +18,32 @@
     2  1 2
     2  2 4))
 
-(deftest test-sum-exponent-bits
+(deftest test-sum-unsigned-bits
   (are [digits expected]
-       (= expected (#'i/sum-exponent-bits digits))
-    [0 0 0 1 1] 3
-    [0 0 1 1 1] 7))
+       (= expected (#'i/sum-unsigned-bits digits))
+    [0 0 0 1 0] 2
+    [1 1] 3))
+
+(deftest test-complement-bits
+  (are [digits expected]
+       (= expected (#'i/complement-bits digits))
+    [1 1 1 0 1] [0 0 0 1 0]
+    [0 0 0 0 1] [1 1 1 1 0]
+    [0] [1]
+    [1] [0]))
+
+(deftest test-sum-signed-bits
+  (are [digits expected]
+       (= expected (#'i/sum-signed-bits digits))
+    [1 0 1] -3
+    [0 1 1]  3
+    [0 0 0]  0))
+
+(deftest test-from-bits
+  (are [bs expected] (= expected (i/from-bits bs))
+    [1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1] -3
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1]  3
+    [[0] [1 0 1]]                      5))
 
 (deftest test-sum-fraction-bits
   (are [digits expected]

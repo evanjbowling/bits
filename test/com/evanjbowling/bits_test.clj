@@ -6,13 +6,13 @@
 
 (deftest test-char-bits
   (are [c expected] (= expected (b/char-bits c))
-    "a"    '(0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 1)
-    "b"    '(0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 0)
-    "c"    '(0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 1)
-    "1"    '(0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 1)
-    "2"    '(0 0 0 0 0 0 0 0 0 0 1 1 0 0 1 0)
-    "3"    '(0 0 0 0 0 0 0 0 0 0 1 1 0 0 1 1)
-    "⁷"    '(0 0 1 0 0 0 0 0 0 1 1 1 0 1 1 1)))
+    \a    '(0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 1)
+    \b    '(0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 0)
+    \c    '(0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 1)
+    \1    '(0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 1)
+    \2    '(0 0 0 0 0 0 0 0 0 0 1 1 0 0 1 0)
+    \3    '(0 0 0 0 0 0 0 0 0 0 1 1 0 0 1 1)
+    \⁷    '(0 0 1 0 0 0 0 0 0 1 1 1 0 1 1 1)))
 
 (deftest test-short-bits
   (are [s expected] (= expected (b/short-bits s))
@@ -22,6 +22,12 @@
     "255"           '(0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1)
     "-255"          '(1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 1)))
 
+(deftest test-from-short-bits
+  (are [s] (= (Short/parseShort (str s)) (b/from-short-bits (b/short-bits s)))
+    Short/MAX_VALUE
+    Short/MIN_VALUE
+    "0"))
+
 (deftest test-int-bits
   (are [i expected] (= expected (b/int-bits i))
     Integer/MAX_VALUE '(0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -29,6 +35,12 @@
     "0"               '(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
     "255"             '(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1)
     "-255"            '(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 1)))
+
+(deftest test-from-int-bits
+  (are [i] (= (Integer/parseInt (str i)) (b/from-int-bits (b/int-bits i)))
+    Integer/MAX_VALUE
+    Integer/MIN_VALUE
+    "0"))
 
 (deftest test-long-bits
   (are [l expected] (= expected (b/long-bits l))
@@ -42,6 +54,12 @@
                           0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1)
     "-255"            '(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
                           1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 1)))
+
+(deftest test-from-long-bits
+  (are [l] (= (Long/parseLong (str l)) (b/from-long-bits (b/long-bits l)))
+    Long/MAX_VALUE
+    Long/MIN_VALUE
+    "0"))
 
 (deftest test-float-bits
   (are [f expected]
@@ -62,6 +80,19 @@
     "0.1"                   ["0" "01111011" "10011001100110011001101"]
     "9"                     ["0" "10000010" "00100000000000000000000"]))
 
+(deftest test-from-float-bits
+  (is (.isNaN ^Float (b/from-float-bits (b/float-bits Float/NaN))))
+  (are [f] (= (Float/parseFloat (str f)) (b/from-float-bits (b/float-bits f)))
+    Float/POSITIVE_INFINITY
+    Float/NEGATIVE_INFINITY
+    Float/MAX_VALUE
+    Float/MIN_NORMAL
+    Float/MIN_VALUE
+    "0.0"
+    "-0.0"
+    "0.25"
+    "0.1"))
+
 (deftest test-double-bits
   (are [d expected]
        (->> (b/double-bits d)
@@ -76,6 +107,19 @@
     "-0.0"                   ["1" "00000000000" "0000000000000000000000000000000000000000000000000000"]
     "9007199254740992"       ["0" "10000110100" "0000000000000000000000000000000000000000000000000000"]
     "9007199254740993"       ["0" "10000110100" "0000000000000000000000000000000000000000000000000000"]))
+
+(deftest test-from-double-bits
+  (is (.isNaN ^Double (b/from-double-bits (b/double-bits Double/NaN))))
+  (are [d] (= (Double/parseDouble (str d)) (b/from-double-bits (b/double-bits d)))
+    Double/POSITIVE_INFINITY
+    Double/NEGATIVE_INFINITY
+    Double/MAX_VALUE
+    Double/MIN_NORMAL
+    Double/MIN_VALUE
+    "0.0"
+    "-0.0"
+    "0.25"
+    "0.1"))
 
 (deftest test-float-attrs
   (is (= Float/MIN_EXPONENT (:exponent (b/float-attrs Float/MIN_VALUE))))

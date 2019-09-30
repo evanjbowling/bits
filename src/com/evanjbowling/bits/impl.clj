@@ -104,23 +104,40 @@
    #(Float/parseFloat %)
    "not a float"))
 
+(defn ^:private abs
+  [x]
+  (cond-> x (neg? x) (* -1N)))
+
+(defn ^:private pow
+  [base e]
+  (if (= e 0)
+    1
+    (cond->> (apply *' (repeat (abs e) base))
+      (neg? e) (/ 1))))
+
+(defn ^:private sum-unsigned-bits
+  "Returns sum of the big-endian unsigned binary
+  integer sequence."
+  [digits]
+  (->> (reverse digits)
+       (map-indexed (fn [i d] (*' d (pow 2 i))))
+       (apply +')))
+
+(defn ^:private complement-bits
+  [digits]
+  (map (fn [d] (if (= d 1) 0 1)) digits))
+
+(defn ^:private sum-signed-bits
+  [digits]
+  (if (= 1 (first digits))
+    (* -1 (+ (sum-unsigned-bits (complement-bits digits)) 1))
+    (sum-unsigned-bits digits)))
+
 (defn from-bits
   "Converts big-endian sequence of bits into integer
   value."
   [bs]
-  (let [num-bits (count (flatten bs))]
-    (loop [bits (reverse (flatten bs))
-           i    1
-           acc  0]
-      (if (empty? bits)
-        acc
-        (let [acc' (if (= 0 (first bits))
-                     acc
-                     (bit-or acc i))]
-          (recur
-           (rest bits)
-           (bit-shift-left i 1)
-           acc'))))))
+  (sum-signed-bits (flatten bs)))
 
 (defn from-char-bits
   [bs]
@@ -136,7 +153,7 @@
 
 (defn from-long-bits
   [bs]
-  (float (from-bits bs)))
+  (long (from-bits bs)))
 
 (defn from-float-bits
   [bs]
@@ -164,25 +181,6 @@
 ;;
 ;; float support
 ;;
-
-(defn ^:private abs
-  [x]
-  (cond-> x (neg? x) (* -1N)))
-
-(defn ^:private pow
-  [base e]
-  (if (= e 0)
-    1
-    (cond->> (apply *' (repeat (abs e) base))
-      (neg? e) (/ 1))))
-
-(defn ^:private sum-exponent-bits
-  "Returns sum of the big-endian unsigned binary
-  integer sequence."
-  [digits]
-  (->> (reverse digits)
-       (map-indexed (fn [i d] (*' d (pow 2 i))))
-       (apply +')))
 
 (defn ^:private sum-fraction-bits
   [digits]
@@ -241,7 +239,7 @@
      :exponent        0}
 
     (#{:subnormal :normal} float-type)
-    (let [exp-biased (sum-exponent-bits exponent-bits)]
+    (let [exp-biased (sum-unsigned-bits exponent-bits)]
       {:exponent-biased exp-biased
        :exponent (cond-> (+ exp-biased exponent-bias)
                    (= :subnormal float-type) (+ 1))})
