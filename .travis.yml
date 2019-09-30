@@ -1,0 +1,9 @@
+language: clojure
+lein: lein
+script: lein do clean, cljfmt check, test
+jdk:
+  - openjdk8
+  - openjdk11
+branches:
+  only:
+    - master
