@@ -7,6 +7,20 @@ A smallish Clojure library for transforming Java primitives into binary sequence
 
 [![Clojars Project](https://img.shields.io/clojars/v/com.evanjbowling/bits.svg)](https://clojars.org/com.evanjbowling/bits)
 
+## Install
+
+Leiningen/Boot:
+
+```clojure
+[com.evanjbowling/bits "0.0.1"]
+```
+
+Clojure CLI/deps.edn:
+
+```clojure
+com.evanjbowling/bits {:mvn/version "0.0.1"}
+```
+
 ## Quick Demo
 
 Load the namespace:
