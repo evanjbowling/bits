@@ -26,8 +26,7 @@ com.evanjbowling/bits {:mvn/version "0.0.1"}
 Load the namespace:
 
 ```clojure
-(ns whose.ns
-  (:require [com.evanjbowling.bits :as bits]))
+(require '[com.evanjbowling.bits :as b])
 ```
 
 View the binary encoding for a few `short`s:
