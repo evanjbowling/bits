@@ -87,6 +87,6 @@ And then tweak the fraction bits too:
 
 ## License
 
-Copyright © 2019 Evan Bowling
+Copyright © 2019-2024 Evan Bowling
 
 Distributed under the MIT License
