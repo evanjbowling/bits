@@ -9,41 +9,54 @@ A smallish Clojure library for transforming Java primitives into binary sequence
 
 ## Install
 
-Leiningen/Boot:
+Leiningen:
 
 ```clojure
 [com.evanjbowling/bits "0.0.1"]
 ```
 
-Clojure CLI/deps.edn:
-
-```clojure
-com.evanjbowling/bits {:mvn/version "0.0.1"}
-```
-
 ## Quick Demo
+
+Start a REPL with this lib (WARN: only do this for dependencies you trust!):
+
+```
+clj -Sdeps '{:deps {com.evanjbowling/bits {:mvn/version "0.0.1"}}}'
+```
 
 Load the namespace:
 
 ```clojure
-(require '[com.evanjbowling.bits :as b])
+(require '[com.evanjbowling.bits :as bits])
 ```
 
 View the binary encoding for a few `short`s:
 
 ```clojure
-(->> ["7" "0" "-1"]
-     (map bits/short-bits)
-     clojure.pprint/pprint)
+(require '[clojure.pprint :as pp])
+(require '[clojure.string :as str])
 
-; ((0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1)
-;  (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
-;  (1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
+(defn print-shorts [shorts]
+  (let [max-s (apply max (map (comp count str) shorts))]
+    (doseq [s shorts]
+      (let [padded-val (pp/cl-format nil (str "~" max-s "@a") s)
+            ->str (fn[x](str/join "" x))]
+        (printf "%s %s\n"
+          padded-val
+          (->str (bits/short-bits (short s))))))))
+
+(print-shorts [Short/MIN_VALUE -1 0 1 Short/MAX_VALUE])
+-32768 1000000000000000
+    -1 1111111111111111
+     0 0000000000000000
+     1 0000000000000001
+ 32767 0111111111111111
 ```
 
 Examine some `char`s:
 
 ```clojure
+
+
 (->> ["A" "a" "µ"]
      (map bits/char-bits)
      clojure.pprint/pprint)
