@@ -13,3 +13,6 @@
           padded-val
           (->str (bits/short-bits (short s))))))))
 
+(defn print-all-the-shorts []
+  (print-shorts (map short (range Short/MIN_VALUE Short/MAX_VALUE))))
+
